@@ -57,7 +57,7 @@ release:
     owner: johnuopini
     name: agent-deck
   draft: false
-  prerelease: auto
+  prerelease: false
   mode: append
   name_template: "v{{.Version}}"
   header: |
