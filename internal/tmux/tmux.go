@@ -1260,37 +1260,61 @@ func (s *Session) IsPaneDead() bool {
 	return strings.TrimSpace(string(out)) == "1"
 }
 
-// ConfigureStatusBar sets up the tmux status bar with session info
-// Shows: notification bar on left (managed by NotificationManager), session info on right
-// NOTE: status-left is reserved for the notification bar showing waiting sessions
-// This function only configures status-right to avoid overwriting notification bar
-func (s *Session) ConfigureStatusBar() {
-	// Skip status bar injection if disabled by user config
+// buildStatusBarArgs returns the tmux command args for configuring the status bar.
+// Returns nil if status bar injection is disabled.
+// Skips any option key that exists in s.OptionOverrides — user-defined options take precedence.
+func (s *Session) buildStatusBarArgs() []string {
 	if !s.injectStatusLine {
-		return
+		return nil
 	}
 
-	// Get short folder name from WorkDir
 	folderName := filepath.Base(s.WorkDir)
 	if folderName == "" || folderName == "." {
 		folderName = "~"
 	}
 
-	// Right side: detach hint + session title with folder path
-	// The hint uses subtle gray (#565f89) so it doesn't compete with session info
 	rightStatus := fmt.Sprintf("#[fg=#565f89]ctrl+q detach#[default] │ 📁 %s | %s ", s.DisplayName, folderName)
 
-	// PERFORMANCE: Batch all 5 status bar options into single subprocess call
-	// Uses tmux command chaining with \; separator (73% reduction in subprocess calls)
-	// Before: 5 separate exec.Command calls = 5 subprocess spawns
-	// After: 1 exec.Command call = 1 subprocess spawn
-	cmd := exec.Command("tmux",
-		"set-option", "-t", s.Name, "status", "on", ";",
-		"set-option", "-t", s.Name, "status-style", "bg=#1a1b26,fg=#a9b1d6", ";",
-		"set-option", "-t", s.Name, "status-left-length", "120", ";",
-		"set-option", "-t", s.Name, "status-right", rightStatus, ";",
-		"set-option", "-t", s.Name, "status-right-length", "80")
-	_ = cmd.Run()
+	// Managed defaults — each can be skipped if user defined it in [tmux] options
+	type option struct {
+		key   string
+		value string
+	}
+	defaults := []option{
+		{"status", "on"},
+		{"status-style", "bg=#1a1b26,fg=#a9b1d6"},
+		{"status-left-length", "120"},
+		{"status-right", rightStatus},
+		{"status-right-length", "80"},
+	}
+
+	var args []string
+	for _, opt := range defaults {
+		if _, overridden := s.OptionOverrides[opt.key]; overridden {
+			continue
+		}
+		if len(args) > 0 {
+			args = append(args, ";")
+		}
+		args = append(args, "set-option", "-t", s.Name, opt.key, opt.value)
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+	return args
+}
+
+// ConfigureStatusBar sets up the tmux status bar with session info.
+// Shows: notification bar on left (managed by NotificationManager), session info on right.
+// NOTE: status-left is reserved for the notification bar showing waiting sessions.
+// Options defined in [tmux] options are respected — agent-deck skips those keys.
+func (s *Session) ConfigureStatusBar() {
+	args := s.buildStatusBarArgs()
+	if args == nil {
+		return
+	}
+	_ = exec.Command("tmux", args...).Run()
 }
 
 // EnableMouseMode enables mouse scrolling, clipboard integration, and optimal settings
