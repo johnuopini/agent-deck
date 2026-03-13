@@ -19,7 +19,7 @@ import (
 
 const (
 	// GitHubRepo is the repository to check for updates
-	GitHubRepo = "johnuopini/agent-deck"
+	GitHubRepo = "asheshgoplani/agent-deck"
 
 	// CacheFileName stores the last update check result
 	CacheFileName = "update-cache.json"
