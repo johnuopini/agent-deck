@@ -191,6 +191,9 @@ func main() {
 		_ = os.Setenv("AGENTDECK_PROFILE", profile)
 	}
 
+	var groupScope string
+	groupScope, args = extractGroupFlag(args)
+
 	var webEnabled bool
 	var webArgs []string
 
@@ -443,6 +446,9 @@ func main() {
 
 	// Start TUI with the specified profile
 	homeModel := ui.NewHomeWithProfileAndMode(profile)
+	if groupScope != "" {
+		homeModel.SetGroupScope(groupScope)
+	}
 
 	// ═══════════════════════════════════════════════════════════════════
 	// Cost Tracking Initialization
@@ -622,6 +628,39 @@ func extractProfileFlag(args []string) (string, []string) {
 	}
 
 	return profile, remaining
+}
+
+// extractGroupFlag extracts -g or --group from args, returning the group path and remaining args
+func extractGroupFlag(args []string) (string, []string) {
+	var group string
+	var remaining []string
+
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+
+		// Check for -g=value or --group=value
+		if strings.HasPrefix(arg, "-g=") {
+			group = strings.TrimPrefix(arg, "-g=")
+			continue
+		}
+		if strings.HasPrefix(arg, "--group=") {
+			group = strings.TrimPrefix(arg, "--group=")
+			continue
+		}
+
+		// Check for -g value or --group value
+		if arg == "-g" || arg == "--group" {
+			if i+1 < len(args) {
+				group = args[i+1]
+				i++ // Skip the value
+				continue
+			}
+		}
+
+		remaining = append(remaining, arg)
+	}
+
+	return group, remaining
 }
 
 // reorderArgsForFlagParsing moves the path argument to the end of args
