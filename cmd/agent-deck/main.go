@@ -446,8 +446,20 @@ func main() {
 
 	// Start TUI with the specified profile
 	homeModel := ui.NewHomeWithProfileAndMode(profile)
+	// Apply group scope if specified via --group / -g flag
 	if groupScope != "" {
-		homeModel.SetGroupScope(groupScope)
+		normalizedGroup := normalizeGroupPath(groupScope)
+		// Validate group exists by loading current sessions
+		if storage, err := session.NewStorageWithProfile(profile); err == nil {
+			if _, groups, err := storage.LoadWithGroups(); err == nil {
+				groupTree := session.NewGroupTreeWithGroups(nil, groups)
+				if _, exists := groupTree.Groups[normalizedGroup]; !exists {
+					fmt.Fprintf(os.Stderr, "Error: group '%s' not found\n", groupScope)
+					os.Exit(2)
+				}
+			}
+		}
+		homeModel.SetGroupScope(normalizedGroup)
 	}
 
 	// ═══════════════════════════════════════════════════════════════════
