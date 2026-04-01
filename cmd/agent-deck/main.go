@@ -191,9 +191,6 @@ func main() {
 		_ = os.Setenv("AGENTDECK_PROFILE", profile)
 	}
 
-	var groupScope string
-	groupScope, args = extractGroupFlag(args)
-
 	var webEnabled bool
 	var webArgs []string
 
@@ -443,6 +440,10 @@ func main() {
 			}
 		}()
 	}
+
+	// Extract --group / -g flag here (TUI-only path; subcommands consume their own -g)
+	var groupScope string
+	groupScope, args = extractGroupFlag(args)
 
 	// Start TUI with the specified profile
 	homeModel := ui.NewHomeWithProfileAndMode(profile)
