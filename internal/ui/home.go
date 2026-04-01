@@ -6583,7 +6583,11 @@ func (h *Home) quickCreateSession() tea.Cmd {
 		}
 	}
 	if groupPath == "" {
-		groupPath = session.DefaultGroupPath
+		if h.groupScope != "" {
+			groupPath = h.groupScope
+		} else {
+			groupPath = session.DefaultGroupPath
+		}
 	}
 
 	projectPath := ""

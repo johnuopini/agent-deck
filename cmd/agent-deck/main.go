@@ -458,7 +458,11 @@ func main() {
 					fmt.Fprintf(os.Stderr, "Error: group '%s' not found\n", groupScope)
 					os.Exit(2)
 				}
+			} else {
+				fmt.Fprintf(os.Stderr, "Warning: could not verify group '%s' (storage error)\n", groupScope)
 			}
+		} else {
+			fmt.Fprintf(os.Stderr, "Warning: could not verify group '%s' (storage error)\n", groupScope)
 		}
 		homeModel.SetGroupScope(normalizedGroup)
 	}
